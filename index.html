@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skilllx — Gamified Quiz from Your Notes</title>
+  
+  <style>
+    /* --- CUSTOM DARK THEME STYLES --- */
+    :root {
+      --bg: #0f1220;
+      --card: #171a2e;
+      --text: #eef0ff;
+      --muted: #a7acd9;
+      --accent: #7c5cff;
+      --accent-2: #2cd4d9;
+      --success: #35d48b;
+      --danger: #ff6b6b;
+      --warning: #ffd166;
+      --border: #2a2f49;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% 20%, rgba(124,92,255,0.12), transparent),
+                  radial-gradient(1200px 800px at 80% 0%, rgba(44,212,217,0.12), transparent),
+                  var(--bg);
+      color: var(--text);
+    }
+
+    .app-header {
+      padding: 32px 24px 12px;
+      text-align: center;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo {
+      display: inline-grid;
+      place-items: center;
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0d0f1a;
+      font-weight: 800;
+      box-shadow: 0 10px 30px rgba(124,92,255,0.35), 0 6px 20px rgba(44,212,217,0.25);
+    }
+    .app-header h1 {
+      margin: 0;
+      font-size: 32px;
+      letter-spacing: 0.5px;
+    }
+    .tagline {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 24px auto 64px;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: rgba(23,26,46,0.9);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 18px 20px;
+      margin-bottom: 18px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+
+    h2 {
+      margin: 6px 0 14px;
+      font-size: 20px;
+    }
+
+    .muted { color: var(--muted); }
+
+    .uploader {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin: 10px 0 6px;
+    }
+
+    input[type="file"] {
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      padding: 8px;
+      border-radius: 10px;
+      background: #0e1120;
+    }
+
+    textarea {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0e1120;
+      color: var(--text);
+      resize: vertical;
+      font-family: monospace; /* Added for code/text input look */
+      font-size: 0.9em;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #12162a;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 120ms ease;
+      font-weight: 600;
+    }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0e1020;
+      font-weight: 700;
+      border: none;
+    }
+    button.secondary {
+      background: #101326;
+      color: var(--muted);
+    }
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .status.success { color: var(--success); }
+    .status.error { color: var(--danger); }
+    
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge {
+      display: inline-block;
+      background: #12162a;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--accent-2);
+      font-weight: 600;
+    }
+    .divider { color: #5b6086; margin: 0 8px; }
+
+    #questionText {
+        font-size: 1.5em;
+        margin: 20px 0;
+        min-height: 50px;
+        line-height: 1.4;
+    }
+    
+    .options {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .option-btn {
+      text-align: left;
+      background: #11152b;
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 12px;
+      width: 100%;
+      font-size: 1em;
+      transition: background 150ms, border-color 150ms, box-shadow 150ms;
+    }
+    .option-btn:hover:not(:disabled) {
+        background: #181d33;
+        transform: none;
+    }
+    .option-btn.selected { /* Added to provide feedback on click before check */
+        border-color: var(--accent);
+    }
+    .option-btn.correct { 
+        border-color: rgba(53,212,139,0.7) !important; 
+        box-shadow: 0 0 0 3px rgba(53,212,139,0.15) inset !important;
+        background: rgba(53,212,139,0.1) !important;
+        color: var(--success);
+    }
+    .option-btn.incorrect { 
+        border-color: rgba(255,107,107,0.7) !important; 
+        box-shadow: 0 0 0 3px rgba(255,107,107,0.15) inset !important;
+        background: rgba(255,107,107,0.1) !important;
+        color: var(--danger);
+    }
+
+    .quiz-actions {
+      display: flex;
+      justify-content: flex-end; /* Align to the right */
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .feedback {
+      min-height: 24px;
+      margin-top: 8px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .feedback.correct { color: var(--success); }
+    .feedback.incorrect { color: var(--danger); }
+
+    .progress {
+      height: 10px;
+      background: #0e1120;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 200ms ease;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .stat {
+      background: #11152b;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat .label {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat span:last-child {
+        display: block;
+        font-size: 1.6em;
+        font-weight: 700;
+        color: var(--text);
+        margin-top: 5px;
+    }
+
+    .app-footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+      border-top: 1px solid var(--border);
+    }
+    
+    #exportArea {
+        height: 200px;
+        font-size: 0.8em;
+    }
+
+    @media (max-width: 720px) {
+      .results-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo">⚡</span>
+      <h1>Skilllx</h1>
+    </div>
+    <p class="tagline">Upload your class notes → get a gamified quiz</p>
+  </header>
+
+  <main class="container">
+    <section class="card" id="upload-card">
+      <h2>Upload notes</h2>
+      <p class="muted">Upload a text file (.txt). Your content stays in your browser.</p>
+
+      <div class="uploader">
+        <input type="file" id="fileInput" accept=".txt" />
+        <button id="sampleBtn" class="secondary">Use sample notes</button>
+      </div>
+
+      <div id="fileStatus" class="status"></div>
+
+      <div class="actions">
+        <button id="extractBtn" disabled>Extract text</button>
+        <button id="generateBtn" disabled class="primary">Generate quiz</button>
+      </div>
+
+      <textarea id="rawText" placeholder="Extracted text (format: Term = Definition) will appear here..." rows="6"></textarea>
+    </section>
+
+    <section class="card" id="quiz-card" hidden>
+      <div class="quiz-header">
+        <div class="quiz-meta">
+          <span id="levelBadge" class="badge">Level 1</span>
+          <span class="divider">•</span>
+          <span id="questionCount">0/0</span>
+        </div>
+        <div class="score-meta">
+          <span>Score: <strong id="score">0</strong></span>
+          <span class="divider">•</span>
+          <span>Streak: <strong id="streak">0</strong></span>
+          <span class="divider">•</span>
+          <span>Time: <strong id="timer">00:00</strong></span>
+        </div>
+      </div>
+
+      <h2 id="questionText">Question will appear here</h2>
+      <div id="options" class="options"></div>
+
+      <div class="quiz-actions">
+        <button id="skipBtn" class="secondary">Skip</button>
+        <button id="nextBtn" class="primary" disabled>Next</button>
+      </div>
+
+      <div id="feedback" class="feedback"></div>
+      <div class="progress">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+    </section>
+
+    <section class="card" id="results-card" hidden>
+      <h2>Results</h2>
+      <p id="resultsSummary"></p>
+      <div class="results-grid">
+        <div class="stat"><span class="label">Score</span><span id="finalScore">0</span></div>
+        <div class="stat"><span class="label">Accuracy</span><span id="finalAccuracy">0%</span></div>
+        <div class="stat"><span class="label">Best streak</span><span id="finalBestStreak">0</span></div>
+        <div class="stat"><span class="label">Time</span><span id="finalTime">00:00</span></div>
+      </div>
+      <div class="actions">
+        <button id="restartBtn" class="primary">Restart</button>
+        <button id="exportBtn" class="secondary">Export quiz (JSON)</button>
+      </div>
+      <textarea id="exportArea" rows="6" placeholder="Exported quiz will appear here..." hidden></textarea>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Skilllx © 2025</span>
+    <span class="divider">•</span>
+    <span class="muted">Built with HTML, CSS, and JavaScript</span>
+  </footer>
+
+  <script>
+    // --- JavaScript Logic (Untouched functional code) ---
+    
+    // --- DOM Elements ---
+    const D = {
+        fileInput: document.getElementById('fileInput'),
+        sampleBtn: document.getElementById('sampleBtn'),
+        fileStatus: document.getElementById('fileStatus'),
+        extractBtn: document.getElementById('extractBtn'),
+        generateBtn: document.getElementById('generateBtn'),
+        rawText: document.getElementById('rawText'),
+        uploadCard: document.getElementById('upload-card'),
+        quizCard: document.getElementById('quiz-card'),
+        resultsCard: document.getElementById('results-card'),
+        questionText: document.getElementById('questionText'),
+        optionsDiv: document.getElementById('options'),
+        nextBtn: document.getElementById('nextBtn'),
+        skipBtn: document.getElementById('skipBtn'),
+        feedback: document.getElementById('feedback'),
+        progressBar: document.getElementById('progressBar'),
+        questionCount: document.getElementById('questionCount'),
+        score: document.getElementById('score'),
+        streak: document.getElementById('streak'),
+        timer: document.getElementById('timer'),
+        finalScore: document.getElementById('finalScore'),
+        finalAccuracy: document.getElementById('finalAccuracy'),
+        finalBestStreak: document.getElementById('finalBestStreak'),
+        finalTime: document.getElementById('finalTime'),
+        resultsSummary: document.getElementById('resultsSummary'),
+        restartBtn: document.getElementById('restartBtn'),
+        exportBtn: document.getElementById('exportBtn'),
+        exportArea: document.getElementById('exportArea'),
+    };
+
+    // --- State Variables ---
+    let termsMap = new Map(); // Stores {Term: Definition}
+    let quizQuestions = [];
+    let currentQuestionIndex = 0;
+    let userScore = 0;
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let correctAnswers = 0;
+    let startTime = null;
+    let timerInterval = null;
+
+    // --- Utility Functions ---
+
+    /**
+     * Updates the file status message.
+     * @param {string} msg 
+     * @param {string} type 'success', 'error', or ''
+     */
+    function updateStatus(msg, type = '') {
+        D.fileStatus.textContent = msg;
+        D.fileStatus.className = `status ${type}`;
+    }
+
+    /**
+     * Shuffles an array (Fisher-Yates algorithm).
+     * @param {Array} array 
+     */
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    /**
+     * Parses the key-value text format into a Map.
+     * Expected format: Term = Definition\n
+     * @param {string} text 
+     */
+    function parseTextToTerms(text) {
+        termsMap.clear();
+        const lines = text.trim().split('\n').filter(line => line.trim() !== '');
+
+        lines.forEach(line => {
+            // Use a regex to robustly find the first '=' and split
+            const match = line.match(/^(.+?)\s*=\s*(.+)$/);
+            if (match) {
+                const term = match[1].trim();
+                const definition = match[2].trim();
+                if (term && definition) {
+                    termsMap.set(term, definition);
+                }
+            }
+        });
+    }
+
+    // --- File Handling Logic ---
+
+    /**
+     * Handles TXT file reading.
+     */
+    async function extractTextFromFile() {
+        const file = D.fileInput.files[0];
+        if (!file) {
+            updateStatus("Please select a file.", 'error');
+            return;
+        }
+
+        D.extractBtn.disabled = true;
+        updateStatus(`Extracting text from ${file.name}...`, '');
+
+        // Only handles TXT file
+        if (file.type === 'text/plain') {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                D.rawText.value = e.target.result;
+                D.extractBtn.disabled = false;
+                D.generateBtn.disabled = false;
+                updateStatus(`Text extracted from ${file.name}. Ready to generate quiz.`, 'success');
+            };
+            reader.onerror = () => updateStatus("Error reading text file.", 'error');
+            reader.readAsText(file);
+        } else {
+             updateStatus("Only .txt files are supported in this MVP.", 'error');
+             D.extractBtn.disabled = false;
+        }
+    }
+
+    function handleFileChange() {
+        D.generateBtn.disabled = true;
+        D.rawText.value = ""; // Clear text area
+        updateStatus('');
+
+        if (D.fileInput.files.length > 0) {
+            D.extractBtn.disabled = D.fileInput.files[0].type !== 'text/plain';
+            D.fileStatus.textContent = `File selected: ${D.fileInput.files[0].name}. Click 'Extract text'.`;
+        } else {
+            D.extractBtn.disabled = true;
+        }
+    }
+
+    function useSampleNotes() {
+        const sampleText = `Sun = The star at the center of our solar system.
+Moon = Earth’s natural satellite that affects tides.
+Earth = The planet we live on.
+Ocean = A large body of salt water covering most of Earth.
+Mountain = A very tall part of Earth’s surface that rises above the land.
+River = A flowing body of water that usually ends in a sea or ocean.
+Volcano = A mountain that can erupt with lava, ash, and gases.
+Earthquake = A sudden shaking of the ground caused by movement of Earth’s crust.
+Cloud = A collection of tiny water droplets or ice crystals in the sky.
+Rain = Water that falls from clouds to Earth’s surface.`;
+        
+        D.rawText.value = sampleText;
+        D.generateBtn.disabled = false;
+        D.extractBtn.disabled = true;
+        updateStatus("Sample notes loaded. Click 'Generate quiz'.", 'success');
+    }
+
+    // --- Quiz Generation Logic ---
+
+    function generateQuiz() {
+        const text = D.rawText.value.trim();
+        if (!text) {
+            updateStatus("Please extract notes or load sample notes first.", 'error');
+            return;
+        }
+
+        parseTextToTerms(text);
+        const terms = Array.from(termsMap.keys());
+        quizQuestions = [];
+
+        if (terms.length < 3) {
+            updateStatus("Need at least 3 terms (Term = Definition) to generate a meaningful quiz.", 'error');
+            return;
+        }
+        
+        D.generateBtn.disabled = true;
+        D.extractBtn.disabled = true;
+        updateStatus(`Generating ${terms.length} questions...`, '');
+
+        // 1. Create Questions
+        terms.forEach(correctTerm => {
+            const definition = termsMap.get(correctTerm);
+            const options = [correctTerm];
+
+            // 2. Select 2 random distractors
+            let distractors = terms.filter(term => term !== correctTerm);
+            shuffle(distractors);
+            
+            // Add exactly 2 distractors if possible
+            if (distractors.length >= 1) options.push(distractors[0]);
+            if (distractors.length >= 2) options.push(distractors[1]);
+
+            // 3. Shuffle options and create question object
+            shuffle(options);
+
+            quizQuestions.push({
+                question: `What is the term for: <strong>${definition}</strong>`,
+                options: options,
+                answer: correctTerm,
+                userAnswer: null
+            });
+        });
+
+        shuffle(quizQuestions); // Shuffle the order of questions
+        updateStatus(`Quiz generated with ${quizQuestions.length} questions. Starting quiz...`, 'success');
+        
+        // Start Quiz
+        setTimeout(startQuiz, 1000);
+    }
+
+    // --- Quiz Play Logic ---
+
+    function startQuiz() {
+        // Reset state
+        currentQuestionIndex = 0;
+        userScore = 0;
+        currentStreak = 0;
+        bestStreak = 0;
+        correctAnswers = 0;
+        
+        // Update UI
+        D.uploadCard.hidden = true;
+        D.resultsCard.hidden = true;
+        D.quizCard.hidden = false;
+        D.score.textContent = userScore;
+        D.streak.textContent = currentStreak;
+        D.nextBtn.disabled = true;
+        D.feedback.textContent = "";
+
+        // Start timer
+        startTime = Date.now();
+        clearInterval(timerInterval);
+        timerInterval = setInterval(updateTimer, 1000);
+
+        loadQuestion();
+    }
+
+    function updateTimer() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const seconds = String(elapsed % 60).padStart(2, '0');
+        D.timer.textContent = `${minutes}:${seconds}`;
+    }
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= quizQuestions.length) {
+            endQuiz();
+            return;
+        }
+        
+        const qData = quizQuestions[currentQuestionIndex];
+        D.questionText.innerHTML = qData.question;
+        D.optionsDiv.innerHTML = '';
+        D.nextBtn.disabled = true;
+        D.feedback.textContent = "";
+        D.skipBtn.disabled = false;
+
+        // Update progress
+        D.questionCount.textContent = `${currentQuestionIndex + 1}/${quizQuestions.length}`;
+        const progress = ((currentQuestionIndex) / quizQuestions.length) * 100;
+        D.progressBar.style.width = `${progress}%`;
+
+        // Load options
+        qData.options.forEach((optionText, index) => {
+            const button = document.createElement('button');
+            button.className = 'option-btn';
+            button.textContent = optionText;
+            button.onclick = () => handleAnswer(optionText, button);
+            D.optionsDiv.appendChild(button);
+        });
+    }
+
+    function handleAnswer(selectedOption, selectedButton) {
+        const qData = quizQuestions[currentQuestionIndex];
+
+        // Only allow one answer
+        if (qData.userAnswer !== null) return;
+        
+        // Disable all options
+        Array.from(D.optionsDiv.children).forEach(btn => {
+            btn.disabled = true;
+            btn.classList.remove('selected');
+        });
+
+        selectedButton.classList.add('selected');
+        D.skipBtn.disabled = true;
+
+        const isCorrect = selectedOption === qData.answer;
+        qData.userAnswer = selectedOption;
+
+        if (isCorrect) {
+            selectedButton.classList.add('correct');
+            D.feedback.textContent = "✅ Correct! +10 Score";
+            D.feedback.classList.remove('incorrect');
+            D.feedback.classList.add('correct');
+            
+            // Update Score and Streak
+            userScore += 10;
+            currentStreak++;
+            correctAnswers++;
+            bestStreak = Math.max(bestStreak, currentStreak);
+        } else {
+            selectedButton.classList.add('incorrect');
+            D.feedback.textContent = `❌ Incorrect. The answer was: ${qData.answer}`;
+            D.feedback.classList.remove('correct');
+            D.feedback.classList.add('incorrect');
+            currentStreak = 0;
+
+            // Highlight correct answer
+            Array.from(D.optionsDiv.children).forEach(btn => {
+                if (btn.textContent === qData.answer) {
+                    btn.classList.add('correct');
+                }
+            });
+        }
+
+        D.score.textContent = userScore;
+        D.streak.textContent = currentStreak;
+        D.nextBtn.disabled = false;
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        loadQuestion();
+    }
+
+    function skipQuestion() {
+        const qData = quizQuestions[currentQuestionIndex];
+        if(qData.userAnswer === null) {
+            qData.userAnswer = 'Skipped';
+        }
+        currentStreak = 0;
+        D.streak.textContent = currentStreak;
+        nextQuestion();
+    }
+
+    function endQuiz() {
+        clearInterval(timerInterval);
+        const finalTime = D.timer.textContent;
+        const totalQuestions = quizQuestions.length;
+        const accuracy = totalQuestions > 0 ? ((correctAnswers / totalQuestions) * 100).toFixed(1) : 0;
+        
+        // Display results
+        D.quizCard.hidden = true;
+        D.resultsCard.hidden = false;
+        
+        D.finalScore.textContent = userScore;
+        D.finalAccuracy.textContent = `${accuracy}%`;
+        D.finalBestStreak.textContent = bestStreak;
+        D.finalTime.textContent = finalTime;
+        
+        D.resultsSummary.textContent = `You finished the quiz with ${correctAnswers} out of ${totalQuestions} questions correct. Your accuracy was ${accuracy}%.`;
+
+        // Final progress bar update
+        D.progressBar.style.width = `100%`;
+    }
+
+    function restartApp() {
+        D.quizCard.hidden = true;
+        D.resultsCard.hidden = true;
+        D.uploadCard.hidden = false;
+        D.generateBtn.disabled = true;
+        D.extractBtn.disabled = true;
+        D.fileInput.value = ''; // Reset file input
+        D.rawText.value = '';
+        D.exportArea.hidden = true;
+        D.exportArea.value = '';
+        updateStatus('');
+    }
+
+    function exportQuiz() {
+        const exportData = {
+            quizTitle: "Generated Skilllx Quiz",
+            totalQuestions: quizQuestions.length,
+            score: userScore,
+            bestStreak: bestStreak,
+            questions: quizQuestions.map(({question, options, answer, userAnswer}) => ({
+                question: question.replace(/<\/?strong>/g, ''), // Clean up strong tags for export
+                options,
+                answer,
+                userAnswer: userAnswer || 'Not answered'
+            }))
+        };
+        
+        D.exportArea.value = JSON.stringify(exportData, null, 2);
+        D.exportArea.hidden = false;
+    }
+
+    // --- Initialization and Event Listeners ---
+    
+    // Set up listeners once the DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        D.fileInput.addEventListener('change', handleFileChange);
+        D.sampleBtn.addEventListener('click', useSampleNotes);
+        D.extractBtn.addEventListener('click', extractTextFromFile);
+        D.generateBtn.addEventListener('click', generateQuiz);
+        D.nextBtn.addEventListener('click', nextQuestion);
+        D.skipBtn.addEventListener('click', skipQuestion);
+        D.restartBtn.addEventListener('click', restartApp);
+        D.exportBtn.addEventListener('click', exportQuiz);
+        
+        // Initial state check
+        handleFileChange();
+    });
+
+  </script>
+</body>
+</html>
